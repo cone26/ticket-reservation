@@ -29,6 +29,6 @@ export class AppServer {
       .build();
 
     const document = SwaggerModule.createDocument(this.app, config);
-    SwaggerModule.setup('api-docs', this.app, document);
+    SwaggerModule.setup('/api-docs', this.app, document);
   }
 }
