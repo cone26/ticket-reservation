@@ -3,6 +3,7 @@ import { Book } from '../interfaces/book.interface';
 
 @Entity('book')
 @Index(['seatNumber', 'createdAt', 'concertId'], { unique: true })
+@Index(['seatNumber', 'createdAt', 'concertId', 'userId'], { unique: true })
 export class BookEntity implements Book {
   @PrimaryGeneratedColumn()
   id: number;
