@@ -14,6 +14,6 @@ export default registerAs('database', () => ({
   password: process.env.DB_PASSWORD,
   name: process.env.DB_NAME,
   database: process.env.DB_DATABASE,
-  synchronize: false,
-  entities: ['dist/src/modules/**/*.entity.!(js.map){,+(ts,js)}'],
+  synchronize: true,
+  entities: ['dist/src/modules/**/entities/*.entity.!(js.map){,+(ts,js)}'],
 }));

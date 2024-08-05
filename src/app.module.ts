@@ -4,6 +4,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import databaseConfig from './config/database.config';
+import { TicketModule } from './modules/tickets/ticket.module';
 
 @Module({
   //config
@@ -18,6 +19,7 @@ import databaseConfig from './config/database.config';
     }),
 
     //module
+    TicketModule,
   ],
 
   controllers: [AppController],
