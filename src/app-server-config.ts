@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import databaseConfig from './config/database.config';
 
 const environment = process.env.NODE_ENV || 'test';
 
@@ -8,7 +9,7 @@ const environment = process.env.NODE_ENV || 'test';
     ConfigModule.forRoot({
       envFilePath: `./config/.${environment}.env`,
       isGlobal: true,
-      load: [],
+      load: [databaseConfig],
     }),
   ],
 })
