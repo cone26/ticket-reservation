@@ -1,8 +1,24 @@
 version: '3.8'
 services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - '3000:3000'
+    environment:
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_USERNAME=: admin
+      DB_PASSWORD: admin1234
+      DB_DATABASE: reservation
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    depends_on:
+      - db
+      - redis
   db:
-    image: mysql:8.0
-    container_name: reservation
+    image: mysql
     platform: linux/x86_64
     restart: always
     ports:
@@ -14,3 +30,12 @@ services:
       MYSQL_PASSWORD: admin1234
     volumes:
       - ./db/mysql/data:/var/lib/mysql
+  redis:
+    image: redis
+    hostname: redis
+    ports:
+      - '6379:6379'
+
+volumes:
+  mysql-data:
+  redis-data:

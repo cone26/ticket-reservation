@@ -34,7 +34,7 @@ export class TicketController {
 
   @Post('reserve')
   async reserveTicket(@Body() reserveTicketInDto: ReserveTicketInDto) {
-    return await this.ticketService.reserveTicket(reserveTicketInDto);
+    return await this.ticketService.addReserveUsersToQueue(reserveTicketInDto);
   }
 
   @Delete('/cancel/:concertId')

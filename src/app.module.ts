@@ -1,15 +1,14 @@
-import { AppServerConfig } from './app-server-config';
+import { AppServerConfigModule } from '../libs/common/src/config/app-server-config.module';
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import databaseConfig from './config/database.config';
 import { TicketModule } from './modules/tickets/ticket.module';
+import databaseConfig from '@libs/common/config/database.config';
+import { ConcertModule } from './modules/concert/concert.module';
 
 @Module({
   //config
   imports: [
-    AppServerConfig,
+    AppServerConfigModule,
 
     //database
     TypeOrmModule.forRootAsync({
@@ -20,9 +19,10 @@ import { TicketModule } from './modules/tickets/ticket.module';
 
     //module
     TicketModule,
+    ConcertModule,
   ],
 
-  controllers: [AppController],
-  providers: [AppService],
+  controllers: [],
+  providers: [],
 })
 export class AppModule {}

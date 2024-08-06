@@ -4,10 +4,14 @@ import { DataSource, Repository } from 'typeorm';
 import { UserEntity } from './entities/user.entity';
 import { BookEntity } from './entities/book.entity';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
-import databaseConfig from 'src/config/database.config';
-import { ConcertEntity } from './entities/concert.entity';
 import { User } from './interfaces/user.interface';
 import { Book } from './interfaces/book.interface';
+import { Queue } from 'bullmq';
+import databaseConfig from '@libs/common/config/database.config';
+import { ConcertEntity } from '../concert/entities/concert.entity';
+import { InjectQueue } from '@nestjs/bull';
+import { BookDto } from './dto/book.dto';
+import { ReserveTicketOutDto } from './dto/reserve-ticket-out.dto';
 
 @Injectable()
 export class TicketService {
@@ -20,6 +24,8 @@ export class TicketService {
     private readonly concertRepository: Repository<ConcertEntity>,
     @InjectDataSource(databaseConfig().name)
     private readonly dataSource: DataSource,
+    @InjectQueue('reserveTicket')
+    private reserveQueue: Queue,
   ) {}
 
   // ckeck lock
@@ -28,7 +34,7 @@ export class TicketService {
   /**
    * 예약 가능한 좌석 조회
    */
-  async getAvailableSeats(concertId: number) {
+  async getAvailableSeats(concertId: number): Promise<string[]> {
     // check concert info
     const concert = await this._getConcertInfo(concertId);
     const reservedTickets = await this.bookRepository.findBy({
@@ -42,7 +48,7 @@ export class TicketService {
       const ticketColumn = ticket.seatNumber[0];
       const ticketRow = ticket.seatNumber.slice(1);
       seatMap[ticketColumn] = seatMap[ticketColumn].filter(
-        (row) => row !== ticketRow,
+        (row) => row !== Number(ticketRow),
       );
     }
 
@@ -55,7 +61,7 @@ export class TicketService {
   async getTicketsByUserName(
     concertId: number,
     userName: string,
-  ): Promise<BookEntity[]> {
+  ): Promise<BookDto[]> {
     // check user info
     const user = await this._getUserInfo(userName);
 
@@ -67,13 +73,13 @@ export class TicketService {
     });
 
     //return 값 수정
-    return tickets;
+    return tickets.map((ticket) => BookDto.of({ ...ticket }));
   }
 
   /**
    * 예약된 좌석 조회
    */
-  async getReservedickets(concertId: number) {
+  async getReservedickets(concertId: number): Promise<BookDto[]> {
     // check concert info
     const concert = await this._getConcertInfo(concertId);
 
@@ -83,14 +89,17 @@ export class TicketService {
       },
     });
 
-    return reservedTickets;
+    return reservedTickets.map((ticket) => BookDto.of({ ...ticket }));
   }
 
   /**
    * 티켓 예약
    */
-  async reserveTicket(reserveTicketInDto: ReserveTicketInDto) {
-    const { concertId, seatNumber, userName } = reserveTicketInDto;
+  async reserveTicket(
+    concertId: number,
+    seatNumber: string,
+    userName: string,
+  ): Promise<ReserveTicketOutDto> {
     let createdReservation: BookEntity;
     let concert: ConcertEntity;
     let user: UserEntity;
@@ -116,6 +125,7 @@ export class TicketService {
           seatNumber,
         },
       });
+
       if (isReserved) {
         throw new InternalServerErrorException({
           message: '이미 선점된 좌석입니다.',
@@ -138,22 +148,21 @@ export class TicketService {
         concertId: concert.id,
         userId: user.id,
       } as Book);
+      await queryRunner.commitTransaction();
     } catch (e) {
       await queryRunner.rollbackTransaction();
-      throw new InternalServerErrorException({
-        message: e,
-      });
+      throw new InternalServerErrorException(e);
     } finally {
-      await queryRunner.release();
       this.isLock = false;
+      await queryRunner.release();
     }
 
-    return {
+    return ReserveTicketOutDto.of({
       seatNumber: createdReservation.seatNumber,
       createAt: createdReservation.createdAt,
       concertName: concert.title,
       user: user.userName,
-    };
+    });
   }
 
   /**
@@ -179,6 +188,23 @@ export class TicketService {
     }
 
     await this.bookRepository.softDelete(reservedTicket.id);
+  }
+
+  /**
+   * 좌석을 예매하기 전 대기할 큐
+   */
+  async addReserveUsersToQueue(reserveTicketInDto: ReserveTicketInDto) {
+    const { concertId, seatNumber, userName } = reserveTicketInDto;
+
+    await this.reserveQueue.add(
+      'reserve',
+      {
+        concertId,
+        seatNumber,
+        userName,
+      },
+      { removeOnComplete: true, removeOnFail: true },
+    );
   }
 
   // =================== private ===================
@@ -215,7 +241,10 @@ export class TicketService {
       i <= lastColumn.toUpperCase().charCodeAt(0);
       i++
     ) {
-      seatMap[i] = new Array(lastRow + 1).fill(1).map((_, i) => i);
+      seatMap[String.fromCharCode(i)] = Array.from(
+        { length: lastRow },
+        (_, i) => i + 1,
+      );
     }
 
     return seatMap;
