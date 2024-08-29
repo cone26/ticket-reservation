@@ -1,4 +1,6 @@
-# 실행 방법
+# Ticket Reservation System Project
+
+## Used Skills
 
 1. docker up - d 명령어를 통해 도커를 띄웁니다.
 2. localhost:3000/api-docs으로접속하면 swagger document를 사용해서 api를 테스트해볼 수 있습니다.
