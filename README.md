@@ -1,4 +1,4 @@
-# Ticket Reservation System Project
+# Ticket Reservation System Project
 
 ## Used Skills
 Typescript, NestJS
